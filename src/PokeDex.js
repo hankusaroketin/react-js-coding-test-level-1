@@ -91,18 +91,19 @@ function PokeDex() {
   }, [search]);
 
   function printDocument() {
-    const content = document.getElementsByTagName("BODY")[0];
+    // const content = document.getElementsByTagName("BODY")[0];
+    console.log(document.getElementsByTagName('BODY')[0])
     const input = document.getElementById("divToPrint");
-    if (input) {
-      input.document.open();
-      input && input.document.write(content.innerHTML);
-      input.document.close();
-    }
+    // if (input) {
+    //   input.document.open();
+    //   input && input.document.write(content.innerHTML);
+    //   input.document.close();
+    // }
     html2canvas(input).then((canvas) => {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF();
       pdf.addImage(imgData, "JPEG", 0, 0);
-      pdf.save("downloadModal.pdf");
+      pdf.save("PokeMonDetail.pdf");
     });
   }
 
@@ -236,10 +237,10 @@ function PokeDex() {
               </li>
             </ul>
           </div> */}
-          <div id="divToPrint">
+          <div id="divToPrint" style={{backgroundColor: 'grey', color: 'white'}}>
             <img
               src={pokemonDetail.sprites.front_default}
-              alt="the sprites"
+              alt="the sprite"
             ></img>
             <span>Stats Details</span>
             <ul>
