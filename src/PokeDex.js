@@ -4,8 +4,7 @@ import ReactLoading from "react-loading";
 import axios from "axios";
 import Modal from "react-modal";
 import BarChart from "react-easy-bar-chart";
-
-import html2canvas from "html2canvas";
+import * as htmlToImage from "html-to-image";
 import { jsPDF } from "jspdf";
 
 function PokeDex() {
@@ -34,10 +33,8 @@ function PokeDex() {
   };
 
   useEffect(() => {
-    // if (pokemons && pokemons.length === 0) {
-      setIsLoading(true);
-      fetchPokeDex()
-    // }
+    setIsLoading(true);
+    fetchPokeDex();
   }, [apiUrl]);
 
   function fetchPokeDex() {
@@ -82,29 +79,38 @@ function PokeDex() {
 
   useEffect(() => {
     let result = pokemons;
-    if (search) {
-      result = pokemons.filter((pokemon) => {
-        return pokemon.name.includes(search);
-      });
+    console.log({ search });
+    if (!!search) {
+      axios
+        .get("https://pokeapi.co/api/v2/pokemon?offset=0&limit=1000000")
+        .then((res) => {
+          const { results, next, previous } = res.data;
+          if (!next && !previous) {
+            result = results.filter((pokemon) => {
+              return pokemon.name.includes(search);
+            });
+            setPokemonsFiltered(result);
+          }
+        });
+    } else if (!search) {
+      console.log("go here");
+      setIsLoading(true);
+      fetchPokeDex();
     }
-    setPokemonsFiltered(result);
   }, [search]);
 
-  function printDocument() {
-    // const content = document.getElementsByTagName("BODY")[0];
-    console.log(document.getElementsByTagName('BODY')[0])
+  const handleEmptyField = (event) => {
+    if (!event.target.value) setSearch("");
+  };
+
+  async function printDocument() {
     const input = document.getElementById("divToPrint");
-    // if (input) {
-    //   input.document.open();
-    //   input && input.document.write(content.innerHTML);
-    //   input.document.close();
-    // }
-    html2canvas(input).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF();
-      pdf.addImage(imgData, "JPEG", 0, 0);
-      pdf.save("PokeMonDetail.pdf");
-    });
+    const dataUrl = await htmlToImage.toPng(input);
+    const pdf = new jsPDF();
+    pdf.setFillColor(204,204,204,0);
+    pdf.rect(0,0,200,200, 'F');
+    pdf.addImage(dataUrl, "png", 0, 0);
+    pdf.save("PokeMonDetail.pdf");
   }
 
   function sortPokemons() {
@@ -113,25 +119,22 @@ function PokeDex() {
       results = [...pokemonsFiltered].sort((a, b) =>
         a.name > b.name ? 1 : -1
       );
-
-      // console.log(strAscending);
       setSort("ASC");
     } else {
       results = [...pokemonsFiltered].sort((a, b) =>
         a.name < b.name ? 1 : -1
       );
-      // console.log(strDescending);
       setSort("DESC");
     }
     setPokemonsFiltered(results);
   }
 
   function prev() {
-    setApiUrl(prevApi)
+    setApiUrl(prevApi);
   }
 
   function next() {
-    setApiUrl(nextApi)
+    setApiUrl(nextApi);
   }
 
   if (!isLoading && pokemons && pokemons.length === 0) {
@@ -185,18 +188,16 @@ function PokeDex() {
         ) : (
           <>
             <h1>Welcome to pokedex !</h1>
-            {/* { pokemons } */}
             <input
               type="search"
               name="search"
               defaultValue=""
               onKeyUp={(val) => searchPokemon(val.target.value)}
+              onChange={handleEmptyField}
             ></input>
             <button onClick={() => sortPokemons()}>Sort</button>
             {pokemonsFiltered &&
               pokemonsFiltered.map((val, idx) => (
-                // <div class="card">
-                //   <div class="container">
                 <div
                   key={idx}
                   className="PokeList"
@@ -204,11 +205,13 @@ function PokeDex() {
                 >
                   {val.name}
                 </div>
-                //   </div>
-                // </div>
               ))}
-            <button onClick={() => prev()} disabled={ !prevApi }>Prev</button>
-            <button onClick={() => next()} disabled={ !nextApi }>Next</button>
+            <button onClick={() => prev()} disabled={!prevApi}>
+              Prev
+            </button>
+            <button onClick={() => next()} disabled={!nextApi}>
+              Next
+            </button>
           </>
         )}
       </header>
@@ -220,7 +223,6 @@ function PokeDex() {
             setPokemonDetail(null);
           }}
           style={customStyles}
-          // appElement={el}
         >
           {/* <div>
             Requirement:
@@ -237,7 +239,9 @@ function PokeDex() {
               </li>
             </ul>
           </div> */}
-          <div id="divToPrint" style={{backgroundColor: 'grey', color: 'white'}}>
+          <div
+            id="divToPrint"
+          >
             <img
               src={pokemonDetail.sprites.front_default}
               alt="the sprite"
@@ -262,7 +266,9 @@ function PokeDex() {
               data={resolveDataToBarChart(pokemonDetail.stats)}
             />
           </div>
-          <button onClick={printDocument()}>Download as PDF</button>
+          <button onClick={() => printDocument()} style={{ cursor: "pointer" }}>
+            Download as PDF
+          </button>
         </Modal>
       )}
     </div>
